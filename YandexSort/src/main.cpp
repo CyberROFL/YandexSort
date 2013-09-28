@@ -40,8 +40,13 @@ static void generate(
 
     std::vector<int> chunk(std::min(_file_size, _mem_limit));
 
-    for (size_t s = 0; s < file_size; )
+    for (size_t s = 0; s < _file_size; s += chunk.size())
     {
+        if (0 < (_file_size - s) && (_file_size - s) < chunk.size())
+        {
+            chunk.resize(_file_size - s);
+        }
+
         for (std::vector<int>::iterator it = chunk.begin();
              it != chunk.end(); ++it)
         {
@@ -49,13 +54,6 @@ static void generate(
         }
 
         ofstream.write(reinterpret_cast<char*>(&chunk[0]), chunk.size());
-
-        s += chunk.size();
-
-        if ((_file_size - s) > 0 && (_file_size - s) < chunk.size())
-        {
-            chunk.resize(_file_size - s);
-        }
     }
 
     // opened file is automatically closed when the ofstream object is destroyed
@@ -109,8 +107,8 @@ int main(int argc, char* argv[])
     // Restrictions
 //     const size_t file_size = 1 << 30; // 1G
 //     const size_t mem_limit = 100 * (1 << 20); // 100M
-    const size_t file_size = 1024;
-    const size_t mem_limit = 1024;
+    const size_t file_size = 36;
+    const size_t mem_limit = 16;
 
     assert (0 == (file_size % sizeof(int)));
     assert (0 == (mem_limit % sizeof(int)));
