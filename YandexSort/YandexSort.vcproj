@@ -394,6 +394,14 @@
 				RelativePath=".\include\pch.h"
 				>
 			</File>
+			<Filter
+				Name="algo"
+				>
+				<File
+					RelativePath=".\include\algo\generator.hpp"
+					>
+				</File>
+			</Filter>
 		</Filter>
 	</Files>
 	<Globals>
