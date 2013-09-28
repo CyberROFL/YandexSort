@@ -4,7 +4,7 @@
     @project YandexSort
 
     @description
-        Interface of random number generator.
+        Implementation of generator.
  */
 
 #ifndef __ALGO_GENERATOR_HPP__
@@ -29,7 +29,7 @@ public:
         std::srand(unsigned(std::time(0)));
     }
 
-    void generate(std::ostream& stream)
+    inline void generate(std::ostream& to)
     {
         std::vector<T> chunk(std::min(_file_size, _mem_limit));
 
@@ -42,14 +42,14 @@ public:
 
             std::generate(chunk.begin(), chunk.end(), std::rand);
 
-            stream.write(reinterpret_cast<char*>(&chunk[0]), chunk.size() * sizeof(T));
+            to.write(reinterpret_cast<char*>(&chunk[0]), chunk.size() * sizeof(T));
         }
     }
 
-    void generate(std::string const& file)
+    inline void generate(std::string const& to)
     {
         std::ofstream ofstream;
-        ofstream.open(file.c_str(), std::fstream::binary);
+        ofstream.open(to.c_str(), std::fstream::binary);
 
         generate(ofstream);
     }

@@ -401,6 +401,10 @@
 					RelativePath=".\include\algo\generator.hpp"
 					>
 				</File>
+				<File
+					RelativePath=".\include\algo\sorter.h"
+					>
+				</File>
 			</Filter>
 		</Filter>
 	</Files>
