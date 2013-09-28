@@ -20,41 +20,43 @@
 
 #include <cassert>
 
+#include <vector>
+
 static void generate(
     size_t const& file_size,
     size_t const& mem_limit,
     std::string const& to_file)
 {
+    // convert all sizes to ints
+    size_t const _file_size = file_size / sizeof(int);
+    size_t const _mem_limit = mem_limit / sizeof(int);
+
     std::ofstream ofstream;
 
-    ofstream.open(to_file.c_str(), std::ofstream::binary);
+    ofstream.open(to_file.c_str(), std::fstream::binary);
 
     // use current time as seed for random generator
     std::srand(static_cast<unsigned int>(std::time(0)));
 
-    size_t chunk_size = std::min(file_size, mem_limit);
-    char*  chunk      = new char[chunk_size];
+    std::vector<int> chunk(std::min(_file_size, _mem_limit));
 
     for (size_t s = 0; s < file_size; )
     {
-        int* int_chunk = reinterpret_cast<int*>(chunk);
-
-        for (size_t i = 0; i < chunk_size / sizeof(int); ++i)
-            int_chunk[i] = std::rand();
-
-        ofstream.write(chunk, chunk_size);
-
-        s += chunk_size;
-
-        if ((file_size - s) > 0 && (file_size - s) < chunk_size)
+        for (std::vector<int>::iterator it = chunk.begin();
+             it != chunk.end(); ++it)
         {
-            chunk_size = file_size - s;
-            delete[] chunk;
-            chunk = new char[chunk_size];
+            *it = std::rand();
+        }
+
+        ofstream.write(reinterpret_cast<char*>(&chunk[0]), chunk.size());
+
+        s += chunk.size();
+
+        if ((_file_size - s) > 0 && (_file_size - s) < chunk.size())
+        {
+            chunk.resize(_file_size - s);
         }
     }
-
-    delete[] chunk;
 
     // opened file is automatically closed when the ofstream object is destroyed
 }
@@ -67,8 +69,8 @@ static void sort(
     std::ifstream ifstream;
     std::ofstream ofstream;
 
-    ifstream.open(from_file.c_str(), std::ifstream::binary);
-    ofstream.open(to_file.c_str(), std::ofstream::binary);
+    ifstream.open(from_file.c_str(), std::fstream::binary);
+    ofstream.open(to_file.c_str(), std::fstream::binary);
 
     ifstream.seekg(0, ifstream.end);
     size_t file_size = ifstream.tellg();
