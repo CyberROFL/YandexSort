@@ -35,13 +35,16 @@ public:
 
         for (size_t s = 0; s < _file_size; s += chunk.size())
         {
-            if (0 < (_file_size - s) && (_file_size - s) < chunk.size())
+            // additional check for last chunk
+            if ((_file_size - s) < chunk.size())
             {
                 chunk.resize(_file_size - s);
             }
 
+            // fill chunk with std::rand() values
             std::generate(chunk.begin(), chunk.end(), std::rand);
 
+            // write chunk to stream
             to.write(reinterpret_cast<char*>(&chunk[0]), chunk.size() * sizeof(T));
         }
     }
@@ -52,7 +55,10 @@ public:
         ofstream.open(to.c_str(), std::fstream::binary);
 
         generate(ofstream);
+
+        // file is automatically closed when the ofstream object is destroyed
     }
-};
+
+}; // class generator
 
 #endif // __ALGO_GENERATOR_HPP__

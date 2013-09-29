@@ -25,11 +25,26 @@ int main(int argc, char* argv[])
     assert (0 == (file_size % sizeof(value_type)));
     assert (0 == (mem_limit % sizeof(value_type)));
 
-    generator<value_type> gen(file_size, mem_limit);
-    gen.generate(argv[1]);
+    try
+    {
+        if (3 != argc)
+        {
+            std::cout << "Usage: YandexSort <gen-file> <sorted-file>\n";
+            std::cout << "Example:\n";
+            std::cout << "  YandexSort gen sorted\n";
+            return 1;
+        }
 
-    sorter<value_type> srt(mem_limit);
-    srt.sort(argv[1], argv[2]);
+        generator<value_type> gen(file_size, mem_limit);
+        gen.generate(argv[1]);
+
+        sorter<value_type> srt(mem_limit);
+        srt.sort(argv[1], argv[2]);
+    }
+    catch (std::exception& e)
+    {
+        std::cout << "Exception: " << e.what() << std::endl;
+    }
 
 	return 0;
 }
