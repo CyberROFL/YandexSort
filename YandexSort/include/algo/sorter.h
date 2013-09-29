@@ -86,13 +86,14 @@ private:
             size_t chunk_size = _mem_limit / (n_chunks + 1); // +1 for out chunk
 
             helper_queue queue;
-            std::vector<chunk<T> > chunks (n_chunks, chunk<T>(chunk_size));
+            std::vector<chunk<T> > chunks(n_chunks, chunk<T>(chunk_size));
 
             // It is better to use some smart pointer... but I cannot use boost
             // and VS 2008 does not support C++11
             std::vector<std::fstream*> streams(n_chunks);
 
-            for (size_t i = 0, s = chunks.size(); i < s; ++i)
+            // initialize
+            for (size_t i = 0; i < n_chunks; ++i)
             {
                 streams[i] = new std::fstream;
                 streams[i]->open(chunk_names[i].c_str(), std::ios::in | std::ios::binary);
@@ -120,22 +121,22 @@ private:
 
                 if (chunks[idx].emptyIndex())
                 {
+                    // clear & read next portion
                     chunks[idx].clearIndex();
                     can_push = chunks[idx].read(*streams[idx]);
                 }
 
+                // is there a new data to be pushed?
                 if (can_push)
-                {
                     queue.push(std::make_pair(chunks[idx].pop_front(), idx));
-                }
             }
 
+            // save unwritten data
             if (!out.empty())
-            {
                 out.write(to_stream);
-            }
 
-            for (size_t i = 0, s = chunks.size(); i < s; ++i)
+            // cleanup
+            for (size_t i = 0; i < n_chunks; ++i)
             {
                 delete streams[i];
                 std::remove(chunk_names[i].c_str());

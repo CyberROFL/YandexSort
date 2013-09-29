@@ -22,30 +22,28 @@ public:
     chunk(size_t const& size) : std::vector<T>(size), _index(0)
     {}
 
-    inline bool read(std::fstream& fstream)
+    inline bool read(std::fstream& stream)
     {
-        fstream.read(reinterpret_cast<char*>(&(operator[](0))), size() * sizeof(T));
+        stream.read(reinterpret_cast<char*>(&(operator[](0))), size() * sizeof(T));
 
-        if (!fstream)
+        if (!stream)
         {
-            size_t gc = fstream.gcount() / sizeof(T);
+            size_t last_count = stream.gcount() / sizeof(T);
 
-            if (0 != gc)
+            if (0 != last_count)
             {
-                resize(gc);
-                read(fstream);
-
+                resize(last_count);
                 return true;
             }
         }
 
-        return !!fstream;
+        return !!stream;
     }
 
-    inline bool write(std::fstream& fstream)
+    inline bool write(std::fstream& stream)
     {
-        fstream.write(reinterpret_cast<char*>(&(operator[](0))), size() * sizeof(T));
-        return !!fstream;
+        stream.write(reinterpret_cast<char*>(&(operator[](0))), size() * sizeof(T));
+        return !!stream;
     }
 
     // pop_front emulation

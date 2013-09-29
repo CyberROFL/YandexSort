@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
 //     const size_t file_size = 1 << 30; // 1G
 //     const size_t mem_limit = 100 * (1 << 20); // 100M
     const size_t file_size = 1 << 20;
-    const size_t mem_limit = 1 << 15;
+    const size_t mem_limit = 4096;
 
     assert (0 != file_size);
     assert (0 != mem_limit);
@@ -49,6 +49,7 @@ int main(int argc, char* argv[])
     catch (std::exception& e)
     {
         std::cout << "Exception: " << e.what() << std::endl;
+        return 1;
     }
 
 	return 0;
