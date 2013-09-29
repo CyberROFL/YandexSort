@@ -10,7 +10,7 @@
 #ifndef __ALGO_SORTER_HPP__
 #define __ALGO_SORTER_HPP__
 
-#include <cstdio>
+#include <algo/chunk.hpp>
 
 template<class T>
 class sorter
@@ -19,63 +19,88 @@ public:
     sorter(size_t const& mem_limit) : _mem_limit(mem_limit / sizeof(T))
     {}
 
-    inline void sort(std::istream& from, std::ostream& to)
+    inline void sort(std::string const& from_file, std::string const& to_file)
     {
-        std::vector<std::string> chunk_names;
+        std::fstream ifstream;
+        std::fstream ofstream;
 
-        make_sorted_chunks(from, chunk_names);
-    }
-
-    inline void sort(std::string const& from, std::string const& to)
-    {
-        std::ifstream ifstream;
-        std::ofstream ofstream;
-
-        ifstream.open(from.c_str(), std::fstream::binary);
-        ofstream.open(to.c_str(), std::fstream::binary);
+        ifstream.open(from_file.c_str(), std::ios::in | std::fstream::binary);
+        ofstream.open(to_file.c_str(),  std::ios::out | std::fstream::binary);
 
         sort(ifstream, ofstream);
 
-        // files are automatically closed when the ofstream objects are destroyed
+        // files are automatically closed when the fstream objects are destroyed
     }
 
-protected:
-    inline size_t make_sorted_chunks(std::istream& from, std::vector<std::string>& chunk_names)
+    inline void sort(std::fstream& from_stream, std::fstream& to_stream)
     {
-        size_t file_size = stream_size(from) / sizeof(T);
-        std::vector<T> chunk(std::min(file_size, _mem_limit));
+        std::vector<std::string> chunk_names;
 
-        for (size_t s = 0; s < file_size; s += chunk.size())
+        make_sorted_chunks (from_stream, chunk_names);
+        merge_sorted_chunks(chunk_names, to_stream);
+    }
+
+private:
+    inline void make_sorted_chunks(
+        std::fstream& from_stream,
+        std::vector<std::string>& chunk_names)
+    {
+        size_t file_size = stream_size(from_stream) / sizeof(T);
+        chunk<T> chunk_(std::min(file_size, _mem_limit));
+
+        for (size_t s = 0; s < file_size; s += chunk_.size())
         {
             // additional check for last chunk
-            if ((file_size - s) < chunk.size())
+            if ((file_size - s) < chunk_.size())
             {
-                chunk.resize(file_size - s);
+                chunk_.resize(file_size - s);
             }
 
-            from.read(reinterpret_cast<char*>(&chunk[0]), chunk.size() * sizeof(T));
+            chunk_.read(from_stream);
 
-            std::sort(chunk.begin(), chunk.end());
+            std::sort(chunk_.begin(), chunk_.end());
 
             // write each chunk into a separate temporary file
             chunk_names.push_back(tmpnam(NULL));
 
-            std::ofstream to;
-            to.open(chunk_names.back().c_str(), std::fstream::binary);
+            std::fstream to_stream;
+            to_stream.open(chunk_names.back().c_str(), std::ios::out | std::fstream::binary);
 
-            to.write(reinterpret_cast<char*>(&chunk[0]), chunk.size() * sizeof(T));
+            chunk_.write(to_stream);
         }
-
-        return chunk_names.size();
     }
 
-private:
-    size_t _mem_limit;
+    inline void merge_sorted_chunks(
+        std::vector<std::string>& chunk_names,
+        std::fstream& to_stream)
+    {
+        if (1 == chunk_names.size())
+        {
+            std::fstream from;
+            from.open(chunk_names[0].c_str(), std::ios::in | std::fstream::binary);
 
-    inline static size_t stream_size(std::istream& stream)
+            to_stream << from.rdbuf();
+        }
+        else
+        {
+            // +1 for output chunk
+            size_t chunk_size = _mem_limit / (chunk_names.size() + 1);
+
+            typedef std::vector<chunk<T> > chunks;
+
+            chunks chunks_(chunk_names.size() + 1, chunk<T>(chunk_size));
+
+            for (chunks::iterator it = chunks_.begin(), end = chunks_.end();
+                 it != end; ++it)
+            {
+            }
+        }
+    }
+
+    inline static size_t stream_size(std::fstream& stream)
     {
         // remember pos
-        std::istream::pos_type pos = stream.tellg();
+        std::fstream::pos_type pos = stream.tellg();
 
         stream.seekg(0, stream.end);
         size_t size = stream.tellg();
@@ -86,36 +111,8 @@ private:
         return size;
     }
 
-//     inline void merge(std::istream& from1, std::istream& from2, std::ostream& to)
-//     {
-//         size_t size1 = stream_size(from1) / sizeof(T);
-//         size_t size2 = stream_size(from2) / sizeof(T);
-//         size_t size  = std::max(size1, size2);
-// 
-//         std::vector<T> chunk1(std::min(size1, _mem_limit) / 4);
-//         std::vector<T> chunk2(std::min(size2, _mem_limit) / 4);
-//         std::vector<T> chunk (std::min(size,  _mem_limit) / 2);
-// 
-//         for (size_t c = 0; c < 4; ++c)
-//         {
-//             from1.read(reinterpret_cast<char*>(&chunk1[0]), chunk1.size() * sizeof(T));
-//             from2.read(reinterpret_cast<char*>(&chunk2[0]), chunk2.size() * sizeof(T));
-// 
-//             std::merge(chunk1.begin(), chunk1.end(), chunk2.begin(), chunk2.end(), chunk.begin());
-//             to.write(reinterpret_cast<char*>(&chunk[0]), chunk.size() * sizeof(T));
-//         }
-//     }
-//     inline void merge(std::string const& from1, std::string const& from2, std::string const& to)
-//     {
-//         std::ifstream ifstream1, ifstream2;
-//         std::ofstream ofstream;
-// 
-//         ifstream1.open(from1.c_str(), std::fstream::binary);
-//         ifstream2.open(from2.c_str(), std::fstream::binary);
-//         ofstream.open(to.c_str(), std::fstream::binary);
-// 
-//         merge(ifstream1, ifstream2, ofstream);
-//     }
+private:
+    size_t _mem_limit;
 
 }; // class sorter
 

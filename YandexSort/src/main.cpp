@@ -22,6 +22,9 @@ int main(int argc, char* argv[])
     const size_t file_size = 128;
     const size_t mem_limit = 32;
 
+    assert (0 != file_size);
+    assert (0 != mem_limit);
+
     assert (0 == (file_size % sizeof(value_type)));
     assert (0 == (mem_limit % sizeof(value_type)));
 
@@ -38,8 +41,8 @@ int main(int argc, char* argv[])
         generator<value_type> gen(file_size, mem_limit);
         gen.generate(argv[1]);
 
-        sorter<value_type> srt(mem_limit);
-        srt.sort(argv[1], argv[2]);
+//         sorter<value_type> srt(mem_limit);
+//         srt.sort(argv[1], argv[2]);
     }
     catch (std::exception& e)
     {

@@ -13,6 +13,8 @@
 #include <cstdlib> // for random generator
 #include <ctime>
 
+#include <algo/chunk.hpp>
+
 template<class T>
 class generator
 {
@@ -26,33 +28,33 @@ public:
         std::srand(unsigned(std::time(0)));
     }
 
-    inline void generate(std::string const& to)
+    inline void generate(std::string const& to_file)
     {
-        std::ofstream ofstream;
-        ofstream.open(to.c_str(), std::fstream::binary);
+        std::fstream ofstream;
+        ofstream.open(to_file.c_str(), std::ios::out | std::fstream::binary);
 
         generate(ofstream);
 
         // file is automatically closed when the ofstream object is destroyed
     }
 
-    inline void generate(std::ostream& to)
+    inline void generate(std::fstream& to_stream)
     {
-        std::vector<T> chunk(std::min(_file_size, _mem_limit));
+        chunk<T> chunk_(std::min(_file_size, _mem_limit));
 
-        for (size_t s = 0; s < _file_size; s += chunk.size())
+        for (size_t s = 0; s < _file_size; s += chunk_.size())
         {
             // additional check for last chunk
-            if ((_file_size - s) < chunk.size())
+            if ((_file_size - s) < chunk_.size())
             {
-                chunk.resize(_file_size - s);
+                chunk_.resize(_file_size - s);
             }
 
             // fill chunk with std::rand() values
-            std::generate(chunk.begin(), chunk.end(), std::rand);
+            std::generate(chunk_.begin(), chunk_.end(), std::rand);
 
             // write chunk to stream
-            to.write(reinterpret_cast<char*>(&chunk[0]), chunk.size() * sizeof(T));
+            chunk_.write(to_stream);
         }
     }
 

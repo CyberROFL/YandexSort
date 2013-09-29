@@ -402,6 +402,10 @@
 				Name="algo"
 				>
 				<File
+					RelativePath=".\include\algo\chunk.hpp"
+					>
+				</File>
+				<File
 					RelativePath=".\include\algo\generator.hpp"
 					>
 				</File>
