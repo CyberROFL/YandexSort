@@ -82,11 +82,12 @@ private:
                 std::vector<value_index>,
                 std::greater<value_index> > helper_queue;
 
-            size_t n_chunks   = chunk_names.size();
-            size_t chunk_size = _mem_limit / (n_chunks + 1); // +1 for out chunk
+            size_t const n_chunks   = chunk_names.size();
+            size_t const chunk_size = _mem_limit / (n_chunks + 1); // +1
 
             helper_queue queue;
             std::vector<chunk<T> > chunks(n_chunks, chunk<T>(chunk_size));
+            chunk<T> out; // out chunk
 
             // It is better to use some smart pointer... but I cannot use boost
             // and VS 2008 does not support C++11
@@ -102,33 +103,31 @@ private:
                 queue.push(std::make_pair(chunks[i].pop_front(), i));
             }
 
-            chunk<T> out;
-
             while (!queue.empty())
             {
-                if (out.size() == chunk_size)
+                if (chunk_size == out.size())
                 {
                     out.write(to_stream);
                     chunk<T>().swap(out); // forces a reallocation
                 }
 
-                size_t idx = queue.top().second;
+                size_t index = queue.top().second; // chunk index
 
-                out.push_back(queue.top().first);
-                queue.pop();
+                out.push_back(queue.top().first); // push to out
+                queue.pop(); // pop from queue
 
                 bool can_push = true;
 
-                if (chunks[idx].emptyIndex())
+                if (chunks[index].empty())
                 {
                     // clear & read next portion
-                    chunks[idx].clearIndex();
-                    can_push = chunks[idx].read(*streams[idx]);
+                    chunks[index].clear();
+                    can_push = chunks[index].read(*streams[index]);
                 }
 
                 // is there a new data to be pushed?
                 if (can_push)
-                    queue.push(std::make_pair(chunks[idx].pop_front(), idx));
+                    queue.push(std::make_pair(chunks[index].pop_front(), index));
             }
 
             // save unwritten data

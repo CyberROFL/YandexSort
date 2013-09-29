@@ -26,6 +26,7 @@ public:
     {
         stream.read(reinterpret_cast<char*>(&(operator[](0))), size() * sizeof(T));
 
+        // is there an error?
         if (!stream)
         {
             size_t last_count = stream.gcount() / sizeof(T);
@@ -47,17 +48,17 @@ public:
     }
 
     // pop_front emulation
-    inline T& pop_front()
+    inline T const& pop_front()
     {
         return operator[](_index++);
     }
 
-    inline bool emptyIndex()
+    inline bool empty() const
     {
         return (_index == size());
     }
 
-    inline void clearIndex()
+    inline void clear()
     {
         _index = 0;
     }
