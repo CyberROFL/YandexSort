@@ -24,8 +24,8 @@ public:
         std::fstream ifstream;
         std::fstream ofstream;
 
-        ifstream.open(from_file.c_str(), std::ios::in | std::fstream::binary);
-        ofstream.open(to_file.c_str(),  std::ios::out | std::fstream::binary);
+        ifstream.open(from_file.c_str(), std::ios::in | std::ios::binary);
+        ofstream.open(to_file.c_str(),  std::ios::out | std::ios::binary);
 
         sort(ifstream, ofstream);
 
@@ -64,7 +64,7 @@ private:
             chunk_names.push_back(tmpnam(NULL));
 
             std::fstream to_stream;
-            to_stream.open(chunk_names.back().c_str(), std::ios::out | std::fstream::binary);
+            to_stream.open(chunk_names.back().c_str(), std::ios::out | std::ios::binary);
 
             chunk_.write(to_stream);
         }
@@ -77,22 +77,85 @@ private:
         if (1 == chunk_names.size())
         {
             std::fstream from;
-            from.open(chunk_names[0].c_str(), std::ios::in | std::fstream::binary);
+            from.open(chunk_names[0].c_str(), std::ios::in | std::ios::binary);
 
             to_stream << from.rdbuf();
         }
         else
         {
-            // +1 for output chunk
-            size_t chunk_size = _mem_limit / (chunk_names.size() + 1);
+            size_t n_chunks   = chunk_names.size();
+            size_t chunk_size = _mem_limit / (n_chunks + 1); // +1 for out chunk
 
-            typedef std::vector<chunk<T> > chunks;
+            typedef std::pair<T, size_t> queue_item;
+            typedef std::priority_queue<
+                queue_item, std::vector<queue_item>, std::greater<queue_item> > queue_type;
 
-            chunks chunks_(chunk_names.size() + 1, chunk<T>(chunk_size));
+            queue_type queue;
 
-            for (chunks::iterator it = chunks_.begin(), end = chunks_.end();
-                 it != end; ++it)
+            std::vector<chunk<T> >     chunks (n_chunks, chunk<T>(chunk_size));
+            std::vector<std::fstream*> streams(n_chunks);
+
+            chunk<T> out;
+
+            for (size_t i = 0, s = chunks.size(); i < s; ++i)
             {
+                streams[i] = new std::fstream;
+                streams[i]->open(chunk_names[i].c_str(), std::ios::in | std::ios::binary);
+            }
+
+            for (size_t i = 0, s = chunks.size(); i < s; ++i)
+            {
+                chunks[i].read(*streams[i]);
+                queue.push(std::make_pair(chunks[i].pop_front(), i));
+            }
+
+            while (!queue.empty())
+            {
+                if (out.size() == chunk_size)
+                {
+                    out.write(to_stream);
+                    chunk<T>().swap(out);
+                }
+
+                size_t idx = queue.top().second;
+
+                out.push_back(queue.top().first);
+                queue.pop();
+
+                bool need_push = true;
+
+                if (chunks[idx].emptyIndex())
+                {
+                    chunks[idx].clearIndex();
+                    chunks[idx].read(*streams[idx]);
+
+                    if (!*streams[idx])
+                    {
+                        size_t gc = (*streams[idx]).gcount() / sizeof(T);
+
+                        if (0 == gc)
+                        {
+//                             chunks.erase(chunks.begin() + idx);
+                            need_push = false;
+                        }
+                        else
+                        {
+                            chunks[idx].resize(gc);
+                            chunks[idx].read(*streams[idx]);
+                        }
+                    }
+                }
+
+                if (need_push)
+                    queue.push(std::make_pair(chunks[idx].pop_front(), idx));
+            }
+
+            if (!out.empty())
+                out.write(to_stream);
+
+            for (size_t i = 0, s = chunks.size(); i < s; ++i)
+            {
+                delete streams[i];
             }
         }
     }

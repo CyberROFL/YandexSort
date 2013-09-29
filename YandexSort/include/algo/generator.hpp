@@ -31,7 +31,7 @@ public:
     inline void generate(std::string const& to_file)
     {
         std::fstream ofstream;
-        ofstream.open(to_file.c_str(), std::ios::out | std::fstream::binary);
+        ofstream.open(to_file.c_str(), std::ios::out | std::ios::binary);
 
         generate(ofstream);
 

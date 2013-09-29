@@ -13,8 +13,13 @@
 template<class T>
 class chunk : public std::vector<T>
 {
+    size_t _index;
+
 public:
-    chunk(size_t const& size) : std::vector<T>(size)
+    chunk() : std::vector<T>(), _index(0)
+    {}
+
+    chunk(size_t const& size) : std::vector<T>(size), _index(0)
     {}
 
     inline std::fstream& read(std::fstream& fstream)
@@ -27,6 +32,22 @@ public:
     {
         fstream.write(reinterpret_cast<char*>(&(operator[](0))), size() * sizeof(T));
         return fstream;
+    }
+
+    // !!FAKE!! pop_front
+    inline T& pop_front()
+    {
+        return operator[](_index++);
+    }
+
+    inline bool emptyIndex()
+    {
+        return (_index == size());
+    }
+
+    inline void clearIndex()
+    {
+        _index = 0;
     }
 
 }; // class chunk
