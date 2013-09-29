@@ -16,9 +16,6 @@
 template<class T>
 class generator
 {
-    size_t _file_size;
-    size_t _mem_limit;
-
 public:
     generator(size_t const& file_size, size_t const& mem_limit) :
 
@@ -27,6 +24,16 @@ public:
     {
         // use current time as seed for random generator
         std::srand(unsigned(std::time(0)));
+    }
+
+    inline void generate(std::string const& to)
+    {
+        std::ofstream ofstream;
+        ofstream.open(to.c_str(), std::fstream::binary);
+
+        generate(ofstream);
+
+        // file is automatically closed when the ofstream object is destroyed
     }
 
     inline void generate(std::ostream& to)
@@ -49,15 +56,9 @@ public:
         }
     }
 
-    inline void generate(std::string const& to)
-    {
-        std::ofstream ofstream;
-        ofstream.open(to.c_str(), std::fstream::binary);
-
-        generate(ofstream);
-
-        // file is automatically closed when the ofstream object is destroyed
-    }
+private:
+    size_t _file_size;
+    size_t _mem_limit;
 
 }; // class generator
 
