@@ -34,8 +34,6 @@ public:
         ofstream.open(to_file.c_str(), std::ios::out | std::ios::binary);
 
         generate(ofstream);
-
-        // file is automatically closed when the ofstream object is destroyed
     }
 
     inline void generate(std::fstream& to_stream)

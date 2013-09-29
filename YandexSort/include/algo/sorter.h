@@ -28,16 +28,14 @@ public:
         ofstream.open(to_file.c_str(),  std::ios::out | std::ios::binary);
 
         sort(ifstream, ofstream);
-
-        // files are automatically closed when the fstream objects are destroyed
     }
 
     inline void sort(std::fstream& from_stream, std::fstream& to_stream)
     {
         std::vector<std::string> chunk_names;
 
-        make_sorted_chunks (from_stream, chunk_names);
-        merge_sorted_chunks(chunk_names, to_stream);
+        make_sorted_chunks(from_stream, chunk_names);
+        n_way_merge(chunk_names, to_stream);
     }
 
 private:
@@ -50,14 +48,9 @@ private:
 
         for (size_t s = 0; s < file_size; s += chunk_.size())
         {
-            // additional check for last chunk
-            if ((file_size - s) < chunk_.size())
-            {
-                chunk_.resize(file_size - s);
-            }
-
             chunk_.read(from_stream);
 
+            // in-memory sort chunk
             std::sort(chunk_.begin(), chunk_.end());
 
             // write each chunk into a separate temporary file
@@ -70,7 +63,7 @@ private:
         }
     }
 
-    inline void merge_sorted_chunks(
+    inline void n_way_merge(
         std::vector<std::string>& chunk_names,
         std::fstream& to_stream)
     {
@@ -83,38 +76,39 @@ private:
         }
         else
         {
+            typedef std::pair<T, size_t> value_index;
+            typedef std::priority_queue<
+                value_index,
+                std::vector<value_index>,
+                std::greater<value_index> > helper_queue;
+
             size_t n_chunks   = chunk_names.size();
             size_t chunk_size = _mem_limit / (n_chunks + 1); // +1 for out chunk
 
-            typedef std::pair<T, size_t> queue_item;
-            typedef std::priority_queue<
-                queue_item, std::vector<queue_item>, std::greater<queue_item> > queue_type;
+            helper_queue queue;
+            std::vector<chunk<T> > chunks (n_chunks, chunk<T>(chunk_size));
 
-            queue_type queue;
-
-            std::vector<chunk<T> >     chunks (n_chunks, chunk<T>(chunk_size));
+            // It is better to use some smart pointer... but I cannot use boost
+            // and VS 2008 does not support C++11
             std::vector<std::fstream*> streams(n_chunks);
-
-            chunk<T> out;
 
             for (size_t i = 0, s = chunks.size(); i < s; ++i)
             {
                 streams[i] = new std::fstream;
                 streams[i]->open(chunk_names[i].c_str(), std::ios::in | std::ios::binary);
-            }
 
-            for (size_t i = 0, s = chunks.size(); i < s; ++i)
-            {
                 chunks[i].read(*streams[i]);
                 queue.push(std::make_pair(chunks[i].pop_front(), i));
             }
+
+            chunk<T> out;
 
             while (!queue.empty())
             {
                 if (out.size() == chunk_size)
                 {
                     out.write(to_stream);
-                    chunk<T>().swap(out);
+                    chunk<T>().swap(out); // forces a reallocation
                 }
 
                 size_t idx = queue.top().second;
@@ -122,40 +116,29 @@ private:
                 out.push_back(queue.top().first);
                 queue.pop();
 
-                bool need_push = true;
+                bool can_push = true;
 
                 if (chunks[idx].emptyIndex())
                 {
                     chunks[idx].clearIndex();
-                    chunks[idx].read(*streams[idx]);
-
-                    if (!*streams[idx])
-                    {
-                        size_t gc = (*streams[idx]).gcount() / sizeof(T);
-
-                        if (0 == gc)
-                        {
-//                             chunks.erase(chunks.begin() + idx);
-                            need_push = false;
-                        }
-                        else
-                        {
-                            chunks[idx].resize(gc);
-                            chunks[idx].read(*streams[idx]);
-                        }
-                    }
+                    can_push = chunks[idx].read(*streams[idx]);
                 }
 
-                if (need_push)
+                if (can_push)
+                {
                     queue.push(std::make_pair(chunks[idx].pop_front(), idx));
+                }
             }
 
             if (!out.empty())
+            {
                 out.write(to_stream);
+            }
 
             for (size_t i = 0, s = chunks.size(); i < s; ++i)
             {
                 delete streams[i];
+                std::remove(chunk_names[i].c_str());
             }
         }
     }
