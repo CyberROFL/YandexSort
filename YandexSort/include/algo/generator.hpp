@@ -44,7 +44,7 @@ public:
         {
             // additional check for last chunk
             if ((_file_size - s) < chunk_.size())
-                chunk_.resize(_file_size - s);
+            chunk_.resize(_file_size - s);
 
             // fill chunk with std::rand() values
             std::generate(chunk_.begin(), chunk_.end(), std::rand);
