@@ -25,7 +25,12 @@ public:
         std::fstream ofstream;
 
         ifstream.open(from_file.c_str(), std::ios::in | std::ios::binary);
+        if (!ifstream)
+            throw std::exception("Cannot open gen-file");
+
         ofstream.open(to_file.c_str(),  std::ios::out | std::ios::binary);
+        if (!ofstream)
+            throw std::exception("Cannot open sorted-file");
 
         sort(ifstream, ofstream);
     }
@@ -83,15 +88,15 @@ private:
                 std::greater<value_index> > helper_queue;
 
             size_t const n_chunks   = chunk_names.size();
-            size_t const chunk_size = _mem_limit / (n_chunks + 1); // +1
-
-            helper_queue queue;
-            std::vector<chunk<T> > chunks(n_chunks, chunk<T>(chunk_size));
-            chunk<T> out; // out chunk
+            size_t const chunk_size = _mem_limit / (n_chunks + 1); // +1 for out
 
             // It is better to use some smart pointer... but I cannot use boost
             // and VS 2008 does not support C++11
             std::vector<std::fstream*> streams(n_chunks);
+            std::vector<chunk<T> > chunks(n_chunks, chunk<T>(chunk_size));
+
+            helper_queue queue;
+            chunk<T> out_chunk;
 
             // initialize
             for (size_t i = 0; i < n_chunks; ++i)
@@ -105,15 +110,15 @@ private:
 
             while (!queue.empty())
             {
-                if (chunk_size == out.size())
+                if (chunk_size == out_chunk.size())
                 {
-                    out.write(to_stream);
-                    chunk<T>().swap(out); // forces a reallocation
+                    out_chunk.write(to_stream);
+                    chunk<T>().swap(out_chunk); // force clear
                 }
 
                 size_t index = queue.top().second; // chunk index
 
-                out.push_back(queue.top().first); // push to out
+                out_chunk.push_back(queue.top().first); // add chunk value to out
                 queue.pop(); // pop from queue
 
                 bool can_push = true;
@@ -131,8 +136,8 @@ private:
             }
 
             // save unwritten data
-            if (!out.empty())
-                out.write(to_stream);
+            if (!out_chunk.empty())
+                out_chunk.write(to_stream);
 
             // cleanup
             for (size_t i = 0; i < n_chunks; ++i)
